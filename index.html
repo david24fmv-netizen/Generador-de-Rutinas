@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rutinas">
+<title>Rutinas</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;margin:0;padding:18px;background:#0f172a;color:#e2e8f0}
+h1{font-size:24px;margin:6px 0 2px}
+h2{font-size:15px;color:#38bdf8;margin:20px 0 8px}
+.sub{color:#94a3b8;font-size:14px;margin-bottom:14px}
+label{display:block;font-size:14px;color:#cbd5e1;margin:12px 0 4px}
+input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;border-radius:10px;border:1px solid #334155;background:#1e293b;color:#e2e8f0}
+.row{display:flex;gap:10px}
+.row>div{flex:1}
+.sexo{display:flex;gap:10px}
+.sexo button{flex:1;padding:12px;font-size:16px;border-radius:10px;border:2px solid #334155;background:#1e293b;color:#e2e8f0}
+.sexo button.on{border-color:#38bdf8;background:#0c4a6e}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card{background:#1e293b;border:2px solid #334155;border-radius:12px;padding:8px;text-align:center}
+.card.on{border-color:#38bdf8;background:#0c4a6e}
+.card svg{width:100%;height:150px}
+.card b{display:block;font-size:15px}
+.card span{font-size:12px;color:#94a3b8}
+.main{width:100%;margin-top:20px;padding:14px;font-size:17px;font-weight:600;border:0;border-radius:12px;background:#38bdf8;color:#0f172a}
+.sec{width:100%;margin-top:10px;padding:12px;font-size:15px;border:1px solid #334155;border-radius:12px;background:transparent;color:#e2e8f0}
+.err{color:#f87171;font-size:14px;margin-top:10px;min-height:18px}
+.aviso{font-size:12px;color:#94a3b8;margin-top:16px;line-height:1.5}
+.ok{background:#1e293b;border-radius:12px;padding:16px;margin-top:14px;line-height:1.7}
+</style></head><body>
+<div id="v1">
+<h1>💪 Mis Rutinas</h1>
+<div class="sub">Cuéntame sobre ti para armar tu plan.</div>
+<label>Nombre</label>
+<input type="text" id="nombre" placeholder="Tu nombre">
+<label>Sexo</label>
+<div class="sexo">
+<button id="sH" onclick="setSexo('Hombre')">Hombre</button>
+<button id="sM" onclick="setSexo('Mujer')">Mujer</button>
+</div>
+<div class="row">
+<div><label>Edad</label><input type="number" id="edad" inputmode="numeric" placeholder="años"></div>
+<div><label>Peso (kg)</label><input type="number" id="peso" inputmode="decimal" placeholder="kg"></div>
+<div><label>Estatura (cm)</label><input type="number" id="est" inputmode="numeric" placeholder="cm"></div>
+</div>
+<h2>¿Qué cuerpo quieres lograr?</h2>
+<div class="grid" id="cards"></div>
+<div class="err" id="err"></div>
+<button class="main" onclick="guardar()">Continuar</button>
+<div class="aviso">Las figuras son solo una referencia. Esta app da rutinas generales y no reemplaza a un entrenador o a un médico. Si tienes lesiones o una condición de salud, consulta antes de entrenar.</div>
+</div>
+
+<div id="v2" style="display:none">
+<h1 id="hola"></h1>
+<div class="ok" id="resumen"></div>
+<div class="sub" style="margin-top:14px">Perfil guardado. El siguiente paso es el entrenamiento del día.</div>
+<button class="sec" onclick="editar()">Editar perfil</button>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const OBJ=[
+ {id:"Tonificado",d:"Músculo suave y definido",p:[34,26,36,7,9,0,0]},
+ {id:"Musculoso",d:"Volumen y fuerza",p:[50,34,38,12,13,0,0]},
+ {id:"Atlético",d:"Fuerte, ágil y proporcionado",p:[42,27,36,8.5,10.5,0,0]},
+ {id:"Marcado",d:"Poca grasa, músculo visible",p:[44,22,34,9.5,10,1,0]},
+ {id:"Perder peso",d:"Reducir grasa corporal",p:[36,24,34,7,9,0,46]},
+ {id:"Fuerza bruta",d:"Máxima fuerza, cuerpo robusto",p:[54,42,44,14,15,0,0]}
+];
+let sexo="",obj="";
+
+function fig(o){
+  let [s,w,h,a,l,abs,g]=o.p;
+  if(sexo==="Mujer"){s*=.85;h*=1.15;a*=.85;l*=1.05;}
+  let v='<svg viewBox="0 0 100 200">';
+  if(g)v+='<polygon points="'+(50-g/2)+',40 '+(50+g/2)+',40 '+(50+g/2+8)+',95 '+(50+g/2+8)+',115 '+(50-g/2-8)+',115 '+(50-g/2-8)+',95" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 3"/>';
+  const c="#7dd3fc";
+  v+='<circle cx="50" cy="22" r="11" fill="'+c+'"/>';
+  v+='<line x1="'+(50-s/2-2)+'" y1="46" x2="'+(50-s/2-9)+'" y2="105" stroke="'+c+'" stroke-width="'+a+'" stroke-linecap="round"/>';
+  v+='<line x1="'+(50+s/2+2)+'" y1="46" x2="'+(50+s/2+9)+'" y2="105" stroke="'+c+'" stroke-width="'+a+'" stroke-linecap="round"/>';
+  v+='<line x1="'+(50-h/4)+'" y1="115" x2="'+(50-h/4-2)+'" y2="188" stroke="'+c+'" stroke-width="'+l+'" stroke-linecap="round"/>';
+  v+='<line x1="'+(50+h/4)+'" y1="115" x2="'+(50+h/4+2)+'" y2="188" stroke="'+c+'" stroke-width="'+l+'" stroke-linecap="round"/>';
+  v+='<polygon points="'+(50-s/2)+',40 '+(50+s/2)+',40 '+(50+w/2)+',95 '+(50+h/2)+',115 '+(50-h/2)+',115 '+(50-w/2)+',95" fill="'+c+'"/>';
+  if(abs){
+    v+='<line x1="50" y1="55" x2="50" y2="95" stroke="#0c4a6e" stroke-width="1.2"/>';
+    [64,74,84].forEach(y=>{v+='<line x1="44" y1="'+y+'" x2="56" y2="'+y+'" stroke="#0c4a6e" stroke-width="1.2"/>';});
+  }
+  return v+'</svg>';
+}
+function pintar(){
+  $("cards").innerHTML=OBJ.map(o=>'<div class="card'+(obj===o.id?" on":"")+'" onclick="setObj(\''+o.id+'\')">'+fig(o)+'<b>'+o.id+'</b><span>'+o.d+'</span></div>').join("");
+}
+function setSexo(s){sexo=s;$("sH").className=s==="Hombre"?"on":"";$("sM").className=s==="Mujer"?"on":"";pintar();}
+function setObj(o){obj=o;pintar();}
+
+function guardar(){
+  const n=$("nombre").value.trim(),e=+$("edad").value,p=+$("peso").value,t=+$("est").value;
+  let m="";
+  if(!n)m="Escribe tu nombre.";
+  else if(!sexo)m="Elige tu sexo.";
+  else if(!(e>=14&&e<=80))m="La edad debe estar entre 14 y 80 años.";
+  else if(!(p>=30&&p<=250))m="El peso debe estar entre 30 y 250 kg.";
+  else if(!(t>=120&&t<=230))m="La estatura debe estar entre 120 y 230 cm.";
+  else if(!obj)m="Elige el cuerpo que quieres lograr.";
+  $("err").textContent=m;
+  if(m)return;
+  try{localStorage.setItem("perfil",JSON.stringify({n:n,sexo:sexo,e:e,p:p,t:t,obj:obj}));}catch(x){}
+  mostrar({n:n,sexo:sexo,e:e,p:p,t:t,obj:obj});
+}
+function mostrar(f){
+  $("v1").style.display="none";$("v2").style.display="block";
+  $("hola").textContent="Hola, "+f.n+" 👋";
+  const imc=f.p/Math.pow(f.t/100,2);
+  $("resumen").innerHTML="<b>Sexo:</b> "+f.sexo+"<br><b>Edad:</b> "+f.e+" años<br><b>Peso:</b> "+f.p+" kg<br><b>Estatura:</b> "+f.t+" cm<br><b>IMC:</b> "+imc.toFixed(1)+"<br><b>Objetivo:</b> "+f.obj;
+}
+function editar(){$("v2").style.display="none";$("v1").style.display="block";}
+
+(function(){
+  let f=null;
+  try{f=JSON.parse(localStorage.getItem("perfil"));}catch(x){}
+  if(f){
+    $("nombre").value=f.n;$("edad").value=f.e;$("peso").value=f.p;$("est").value=f.t;
+    sexo=f.sexo;obj=f.obj;
+    $("sH").className=sexo==="Hombre"?"on":"";$("sM").className=sexo==="Mujer"?"on":"";
+    pintar();mostrar(f);
+  }else pintar();
+})();
+</script></body></html>
