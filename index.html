@@ -33,10 +33,24 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 .err{color:#f87171;font-size:14px;margin-top:10px;min-height:18px}
 .aviso{font-size:12px;color:#94a3b8;margin-top:16px;line-height:1.5}
 .ok{background:#1e293b;border-radius:12px;padding:16px;margin-top:14px;line-height:1.7}
+.pf{display:flex;align-items:center;gap:6px;background:#1e293b;border-radius:12px;padding:10px;margin:8px 0}
+.pfi{flex:1}
+.pfi b{display:block;font-size:17px}
+.pfi span{font-size:13px;color:#94a3b8}
+.ic{background:transparent;border:0;font-size:20px;padding:6px}
 </style></head><body>
 
-<div id="v1">
-<h1>💪 Mis Rutinas</h1>
+<div id="v0" style="display:none">
+<h1>👤 Perfiles</h1>
+<div class="sub">Elige tu perfil o crea uno nuevo.</div>
+<div id="lista"></div>
+<button class="main" onclick="nuevoP()">+ Nuevo perfil</button>
+<button class="sec" onclick="respaldo()">Copiar respaldo</button>
+<button class="sec" onclick="restaurar()">Restaurar respaldo</button>
+</div>
+
+<div id="v1" style="display:none">
+<h1 id="tituloF">💪 Nuevo perfil</h1>
 <div class="sub">Cuéntame sobre ti para armar tu plan.</div>
 <label>Nombre</label>
 <input type="text" id="nombre" placeholder="Tu nombre">
@@ -53,7 +67,8 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 <h2>¿Qué cuerpo quieres lograr?</h2>
 <div class="grid" id="cards"></div>
 <div class="err" id="err"></div>
-<button class="main" onclick="guardar()">Continuar</button>
+<button class="main" onclick="guardar()">Guardar perfil</button>
+<button class="sec" id="cancelarF" onclick="irP()">Cancelar</button>
 <div class="aviso">Las imágenes son solo una referencia. Esta app da rutinas generales y no reemplaza a un entrenador o a un médico. Si tienes lesiones o una condición de salud, consulta antes de entrenar.</div>
 </div>
 
@@ -61,7 +76,8 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 <h1 id="hola"></h1>
 <div class="ok" id="resumen"></div>
 <button class="main" onclick="abrirT()">Empezar entrenamiento</button>
-<button class="sec" onclick="ir('v1')">Editar perfil</button>
+<button class="sec" onclick="editarP(act)">Editar perfil</button>
+<button class="sec" onclick="irP()">Cambiar de perfil</button>
 </div>
 
 <div id="v3" style="display:none">
@@ -95,8 +111,9 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 
 <script>
 const $=id=>document.getElementById(id);
-const PANT=["v1","v2","v3","v4"];
+const PANT=["v0","v1","v2","v3","v4"];
 function ir(x){PANT.forEach(p=>{$(p).style.display=p===x?"block":"none";});window.scrollTo(0,0);}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
 const OBJ=[
  {id:"Tonificado",h:"hombre-tonificado",m:"mujer-tonificada",d:"Músculo suave y definido",p:[34,26,36,7,9,0,0]},
@@ -152,6 +169,58 @@ function pintar(){
 function setSexo(s){sexo=s;$("sH").className=s==="Hombre"?"on":"";$("sM").className=s==="Mujer"?"on":"";pintar();}
 function setObj(o){obj=o;pintar();}
 
+// ---------- Perfiles guardados ----------
+let PF=[],act=null,editId=null;
+function leer(){
+  try{PF=JSON.parse(localStorage.getItem("perfiles"))||[];}catch(x){PF=[];}
+  try{act=localStorage.getItem("activo")||null;}catch(x){act=null;}
+  if(!PF.length){
+    try{
+      const o=JSON.parse(localStorage.getItem("perfil"));
+      if(o){o.id="p"+Date.now();PF=[o];act=o.id;grabar();}
+    }catch(x){}
+  }
+}
+function grabar(){
+  try{localStorage.setItem("perfiles",JSON.stringify(PF));localStorage.setItem("activo",act||"");}catch(x){}
+}
+function perfil(){return PF.find(p=>p.id===act);}
+
+function pintarP(){
+  $("lista").innerHTML=PF.map(p=>'<div class="pf"><div class="pfi" onclick="entrar(\''+p.id+'\')"><b>'+esc(p.n)+'</b><span>'+esc(p.obj)+' · '+p.e+' años · '+p.p+' kg</span></div><button class="ic" onclick="editarP(\''+p.id+'\')">✏️</button><button class="ic" onclick="borrarP(\''+p.id+'\')">🗑️</button></div>').join("")||'<div class="sub">Aún no tienes perfiles.</div>';
+}
+function irP(){pintarP();ir("v0");}
+function entrar(id){act=id;grabar();mostrar(perfil());}
+function formVacio(){
+  $("nombre").value="";$("edad").value="";$("peso").value="";$("est").value="";
+  sexo="";obj="";$("sH").className="";$("sM").className="";$("err").textContent="";
+}
+function nuevoP(){
+  editId=null;formVacio();pintar();
+  $("tituloF").textContent="💪 Nuevo perfil";
+  $("cancelarF").style.display=PF.length?"block":"none";
+  ir("v1");
+}
+function editarP(id){
+  const f=PF.find(p=>p.id===id);
+  if(!f)return;
+  editId=id;formVacio();
+  $("nombre").value=f.n;$("edad").value=f.e;$("peso").value=f.p;$("est").value=f.t;
+  sexo=f.sexo;obj=f.obj;
+  $("sH").className=sexo==="Hombre"?"on":"";$("sM").className=sexo==="Mujer"?"on":"";
+  pintar();
+  $("tituloF").textContent="✏️ Editar perfil";
+  $("cancelarF").style.display="block";
+  ir("v1");
+}
+function borrarP(id){
+  const f=PF.find(p=>p.id===id);
+  if(!f||!confirm("¿Borrar el perfil de "+f.n+"?"))return;
+  PF=PF.filter(p=>p.id!==id);
+  if(act===id)act=PF.length?PF[0].id:null;
+  grabar();
+  if(PF.length)irP();else nuevoP();
+}
 function guardar(){
   const n=$("nombre").value.trim(),e=+$("edad").value,p=+$("peso").value,t=+$("est").value;
   let m="";
@@ -163,17 +232,47 @@ function guardar(){
   else if(!obj)m="Elige el cuerpo que quieres lograr.";
   $("err").textContent=m;
   if(m)return;
-  try{localStorage.setItem("perfil",JSON.stringify({n:n,sexo:sexo,e:e,p:p,t:t,obj:obj}));}catch(x){}
-  mostrar({n:n,sexo:sexo,e:e,p:p,t:t,obj:obj});
+  const d={n:n,sexo:sexo,e:e,p:p,t:t,obj:obj};
+  if(editId){
+    const i=PF.findIndex(x=>x.id===editId);
+    d.id=editId;PF[i]=d;
+  }else{
+    d.id="p"+Date.now();PF.push(d);
+  }
+  act=d.id;grabar();
+  mostrar(d);
 }
 function mostrar(f){
   ir("v2");
   $("hola").textContent="Hola, "+f.n+" 👋";
   const imc=f.p/Math.pow(f.t/100,2);
-  $("resumen").innerHTML="<b>Sexo:</b> "+f.sexo+"<br><b>Edad:</b> "+f.e+" años<br><b>Peso:</b> "+f.p+" kg<br><b>Estatura:</b> "+f.t+" cm<br><b>IMC:</b> "+imc.toFixed(1)+"<br><b>Objetivo:</b> "+f.obj;
+  $("resumen").innerHTML="<b>Sexo:</b> "+f.sexo+"<br><b>Edad:</b> "+f.e+" años<br><b>Peso:</b> "+f.p+" kg<br><b>Estatura:</b> "+f.t+" cm<br><b>IMC:</b> "+imc.toFixed(1)+"<br><b>Objetivo:</b> "+esc(f.obj);
+}
+function respaldo(){
+  const j=JSON.stringify({perfiles:PF,activo:act});
+  try{
+    navigator.clipboard.writeText(j).then(
+      ()=>alert("Respaldo copiado. Pégalo en la app Notas para guardarlo."),
+      ()=>prompt("Copia este texto y guárdalo en Notas:",j)
+    );
+  }catch(x){prompt("Copia este texto y guárdalo en Notas:",j);}
+}
+function restaurar(){
+  const t=prompt("Pega aquí tu respaldo:");
+  if(!t)return;
+  try{
+    const d=JSON.parse(t);
+    if(!Array.isArray(d.perfiles))throw new Error("x");
+    const lista=d.perfiles.filter(p=>p&&p.id&&p.n);
+    if(!lista.length)throw new Error("x");
+    if(!confirm("Esto reemplaza tus perfiles actuales. ¿Continuar?"))return;
+    PF=lista;act=d.activo||PF[0].id;grabar();
+    irP();
+    alert("Respaldo restaurado.");
+  }catch(x){alert("El texto no es un respaldo válido.");}
 }
 
-// ---------- Paso 2: entrenamiento del día ----------
+// ---------- Entrenamiento del día ----------
 const DIAS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const EQ=["Peso corporal","Bandas elásticas","Pesas de tobillo","Barra multifuncional de pared","Mancuernas"];
 const MUS=["Cuerpo entero","Pecho","Espalda","Hombros","Bíceps","Tríceps","Abdomen","Glúteos","Cuádriceps","Isquiotibiales","Pantorrillas"];
@@ -209,21 +308,17 @@ function generar(){
   $("errT").textContent=m;
   if(m)return;
   const s={dia:DIAS[dia],lugar:lugar,eq:lugar==="Casa"?eq.map(i=>EQ[i]):[],mus:mus.map(i=>MUS[i])};
-  try{localStorage.setItem("sesion",JSON.stringify(s));}catch(x){}
+  try{localStorage.setItem("sesion_"+act,JSON.stringify(s));}catch(x){}
   $("resSes").innerHTML="<b>Día:</b> "+s.dia+"<br><b>Lugar:</b> "+s.lugar+(s.eq.length?"<br><b>Equipo:</b> "+s.eq.join(", "):"")+"<br><b>Músculos:</b> "+s.mus.join(", ");
   ir("v4");
 }
 
-(function(){
-  let f=null;
-  try{f=JSON.parse(localStorage.getItem("perfil"));}catch(x){}
-  if(f){
-    $("nombre").value=f.n;$("edad").value=f.e;$("peso").value=f.p;$("est").value=f.t;
-    sexo=f.sexo;obj=f.obj;
-    $("sH").className=sexo==="Hombre"?"on":"";$("sM").className=sexo==="Mujer"?"on":"";
-    pintar();mostrar(f);
-  }else{pintar();ir("v1");}
-})();
+// ---------- Inicio ----------
+leer();
+if(!PF.length){nuevoP();}
+else if(perfil()){mostrar(perfil());}
+else{irP();}
 </script></body></html>
+
 
 
