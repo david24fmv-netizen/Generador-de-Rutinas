@@ -18,6 +18,9 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 .sexo{display:flex;gap:10px}
 .sexo button{flex:1;padding:12px;font-size:16px;border-radius:10px;border:2px solid #334155;background:#1e293b;color:#e2e8f0}
 .sexo button.on{border-color:#38bdf8;background:#0c4a6e}
+.wrap{display:flex;flex-wrap:wrap}
+.chip{padding:10px 14px;border-radius:20px;border:2px solid #334155;background:#1e293b;color:#e2e8f0;font-size:15px;margin:0 6px 8px 0}
+.chip.on{border-color:#38bdf8;background:#0c4a6e}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .card{background:#1e293b;border:2px solid #334155;border-radius:12px;padding:8px;text-align:center}
 .card.on{border-color:#38bdf8;background:#0c4a6e}
@@ -31,6 +34,7 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 .aviso{font-size:12px;color:#94a3b8;margin-top:16px;line-height:1.5}
 .ok{background:#1e293b;border-radius:12px;padding:16px;margin-top:14px;line-height:1.7}
 </style></head><body>
+
 <div id="v1">
 <h1>💪 Mis Rutinas</h1>
 <div class="sub">Cuéntame sobre ti para armar tu plan.</div>
@@ -56,12 +60,44 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 <div id="v2" style="display:none">
 <h1 id="hola"></h1>
 <div class="ok" id="resumen"></div>
-<div class="sub" style="margin-top:14px">Perfil guardado. El siguiente paso es el entrenamiento del día.</div>
-<button class="sec" onclick="editar()">Editar perfil</button>
+<button class="main" onclick="abrirT()">Empezar entrenamiento</button>
+<button class="sec" onclick="ir('v1')">Editar perfil</button>
+</div>
+
+<div id="v3" style="display:none">
+<h1>🏋️ Entrenamiento</h1>
+<div class="sub">Configura la rutina de hoy.</div>
+<h2>¿Para qué día es?</h2>
+<div class="wrap" id="dias"></div>
+<h2>¿Dónde vas a entrenar?</h2>
+<div class="sexo">
+<button id="lC" onclick="setLugar('Casa')">🏠 En casa</button>
+<button id="lG" onclick="setLugar('Gimnasio')">🏢 Gimnasio</button>
+</div>
+<div id="bloqueEq" style="display:none">
+<h2>¿Qué tienes en casa?</h2>
+<div class="wrap" id="eqs"></div>
+</div>
+<h2>¿Qué parte del cuerpo quieres trabajar?</h2>
+<div class="wrap" id="mus"></div>
+<div class="err" id="errT"></div>
+<button class="main" onclick="generar()">Continuar</button>
+<button class="sec" onclick="ir('v2')">← Volver</button>
+</div>
+
+<div id="v4" style="display:none">
+<h1>✅ Todo listo</h1>
+<div class="ok" id="resSes"></div>
+<div class="sub" style="margin-top:14px">El siguiente paso es generar la rutina con ejercicios, series y descansos.</div>
+<button class="sec" onclick="abrirT()">Cambiar selección</button>
+<button class="sec" onclick="ir('v2')">Inicio</button>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
+const PANT=["v1","v2","v3","v4"];
+function ir(x){PANT.forEach(p=>{$(p).style.display=p===x?"block":"none";});window.scrollTo(0,0);}
+
 const OBJ=[
  {id:"Tonificado",h:"hombre-tonificado",m:"mujer-tonificada",d:"Músculo suave y definido",p:[34,26,36,7,9,0,0]},
  {id:"Musculoso",h:"hombre-musculoso",m:"mujer-musculosa",d:"Volumen y fuerza",p:[50,34,38,12,13,0,0]},
@@ -89,7 +125,6 @@ function falla(el){
   if(t<c.length){el.dataset.t=t;el.src=c[t];}
   else{el.parentNode.innerHTML=fig(o);}
 }
-
 function fig(o){
   let [s,w,h,a,l,abs,g]=o.p;
   if(sexo==="Mujer"){s*=.85;h*=1.15;a*=.85;l*=1.05;}
@@ -132,12 +167,52 @@ function guardar(){
   mostrar({n:n,sexo:sexo,e:e,p:p,t:t,obj:obj});
 }
 function mostrar(f){
-  $("v1").style.display="none";$("v2").style.display="block";
+  ir("v2");
   $("hola").textContent="Hola, "+f.n+" 👋";
   const imc=f.p/Math.pow(f.t/100,2);
   $("resumen").innerHTML="<b>Sexo:</b> "+f.sexo+"<br><b>Edad:</b> "+f.e+" años<br><b>Peso:</b> "+f.p+" kg<br><b>Estatura:</b> "+f.t+" cm<br><b>IMC:</b> "+imc.toFixed(1)+"<br><b>Objetivo:</b> "+f.obj;
 }
-function editar(){$("v2").style.display="none";$("v1").style.display="block";}
+
+// ---------- Paso 2: entrenamiento del día ----------
+const DIAS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+const EQ=["Peso corporal","Bandas elásticas","Pesas de tobillo","Barra multifuncional de pared","Mancuernas"];
+const MUS=["Cuerpo entero","Pecho","Espalda","Hombros","Bíceps","Tríceps","Abdomen","Glúteos","Cuádriceps","Isquiotibiales","Pantorrillas"];
+let dia=-1,lugar="",eq=[0],mus=[];
+
+function chip(lista,sel,fn){
+  return lista.map((t,i)=>'<button class="chip'+(sel.indexOf(i)>=0?" on":"")+'" onclick="'+fn+'('+i+')">'+t+'</button>').join("");
+}
+function pintarT(){
+  $("dias").innerHTML=chip(DIAS,[dia],"setDia");
+  $("lC").className=lugar==="Casa"?"on":"";
+  $("lG").className=lugar==="Gimnasio"?"on":"";
+  $("bloqueEq").style.display=lugar==="Casa"?"block":"none";
+  $("eqs").innerHTML=chip(EQ,eq,"togEq");
+  $("mus").innerHTML=chip(MUS,mus,"togMus");
+}
+function abrirT(){ir("v3");pintarT();}
+function setDia(i){dia=i;pintarT();}
+function setLugar(l){lugar=l;pintarT();}
+function tog(arr,i){const k=arr.indexOf(i);if(k>=0)arr.splice(k,1);else arr.push(i);}
+function togEq(i){tog(eq,i);pintarT();}
+function togMus(i){
+  if(i===0){mus=mus.indexOf(0)>=0?[]:[0];}
+  else{const k=mus.indexOf(0);if(k>=0)mus.splice(k,1);tog(mus,i);}
+  pintarT();
+}
+function generar(){
+  let m="";
+  if(dia<0)m="Elige el día.";
+  else if(!lugar)m="Elige si entrenas en casa o en el gimnasio.";
+  else if(lugar==="Casa"&&!eq.length)m="Elige al menos una opción de equipo.";
+  else if(!mus.length)m="Elige qué parte del cuerpo vas a trabajar.";
+  $("errT").textContent=m;
+  if(m)return;
+  const s={dia:DIAS[dia],lugar:lugar,eq:lugar==="Casa"?eq.map(i=>EQ[i]):[],mus:mus.map(i=>MUS[i])};
+  try{localStorage.setItem("sesion",JSON.stringify(s));}catch(x){}
+  $("resSes").innerHTML="<b>Día:</b> "+s.dia+"<br><b>Lugar:</b> "+s.lugar+(s.eq.length?"<br><b>Equipo:</b> "+s.eq.join(", "):"")+"<br><b>Músculos:</b> "+s.mus.join(", ");
+  ir("v4");
+}
 
 (function(){
   let f=null;
@@ -147,7 +222,8 @@ function editar(){$("v2").style.display="none";$("v1").style.display="block";}
     sexo=f.sexo;obj=f.obj;
     $("sH").className=sexo==="Hombre"?"on":"";$("sM").className=sexo==="Mujer"?"on":"";
     pintar();mostrar(f);
-  }else pintar();
+  }else{pintar();ir("v1");}
 })();
 </script></body></html>
+
 
