@@ -21,7 +21,8 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .card{background:#1e293b;border:2px solid #334155;border-radius:12px;padding:8px;text-align:center}
 .card.on{border-color:#38bdf8;background:#0c4a6e}
-.card svg{width:100%;height:150px}
+.im img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;display:block;margin-bottom:6px}
+.im svg{width:100%;height:150px}
 .card b{display:block;font-size:15px}
 .card span{font-size:12px;color:#94a3b8}
 .main{width:100%;margin-top:20px;padding:14px;font-size:17px;font-weight:600;border:0;border-radius:12px;background:#38bdf8;color:#0f172a}
@@ -49,7 +50,7 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 <div class="grid" id="cards"></div>
 <div class="err" id="err"></div>
 <button class="main" onclick="guardar()">Continuar</button>
-<div class="aviso">Las figuras son solo una referencia. Esta app da rutinas generales y no reemplaza a un entrenador o a un médico. Si tienes lesiones o una condición de salud, consulta antes de entrenar.</div>
+<div class="aviso">Las imágenes son solo una referencia. Esta app da rutinas generales y no reemplaza a un entrenador o a un médico. Si tienes lesiones o una condición de salud, consulta antes de entrenar.</div>
 </div>
 
 <div id="v2" style="display:none">
@@ -62,14 +63,32 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 <script>
 const $=id=>document.getElementById(id);
 const OBJ=[
- {id:"Tonificado",d:"Músculo suave y definido",p:[34,26,36,7,9,0,0]},
- {id:"Musculoso",d:"Volumen y fuerza",p:[50,34,38,12,13,0,0]},
- {id:"Atlético",d:"Fuerte, ágil y proporcionado",p:[42,27,36,8.5,10.5,0,0]},
- {id:"Marcado",d:"Poca grasa, músculo visible",p:[44,22,34,9.5,10,1,0]},
- {id:"Perder peso",d:"Reducir grasa corporal",p:[36,24,34,7,9,0,46]},
- {id:"Fuerza bruta",d:"Máxima fuerza, cuerpo robusto",p:[54,42,44,14,15,0,0]}
+ {id:"Tonificado",h:"hombre-tonificado",m:"mujer-tonificada",d:"Músculo suave y definido",p:[34,26,36,7,9,0,0]},
+ {id:"Musculoso",h:"hombre-musculoso",m:"mujer-musculosa",d:"Volumen y fuerza",p:[50,34,38,12,13,0,0]},
+ {id:"Atlético",h:"hombre-atlético",m:"mujer-atlética",d:"Fuerte, ágil y proporcionado",p:[42,27,36,8.5,10.5,0,0]},
+ {id:"Marcado",h:"hombre-marcado",m:"Mujer-marcada",d:"Poca grasa, músculo visible",p:[44,22,34,9.5,10,1,0]},
+ {id:"Perder peso",h:"hombre-bajar de peso",m:"mujer-perder peso",d:"Reducir grasa corporal",p:[36,24,34,7,9,0,46]},
+ {id:"Fuerza bruta",h:"hombre-fuerza",m:"mujer-fuerza",d:"Máxima fuerza, cuerpo robusto",p:[54,42,44,14,15,0,0]}
 ];
 let sexo="",obj="";
+
+function cand(b){
+  const out=[];
+  [b.normalize("NFC"),b.normalize("NFD")].forEach(n=>{
+    [".png.JPG",".png.jpg"].forEach(e=>{
+      const u=encodeURIComponent(n)+e;
+      if(out.indexOf(u)<0)out.push(u);
+    });
+  });
+  return out;
+}
+function falla(el){
+  const o=OBJ[+el.dataset.i];
+  const c=cand(sexo==="Mujer"?o.m:o.h);
+  const t=+el.dataset.t+1;
+  if(t<c.length){el.dataset.t=t;el.src=c[t];}
+  else{el.parentNode.innerHTML=fig(o);}
+}
 
 function fig(o){
   let [s,w,h,a,l,abs,g]=o.p;
@@ -90,7 +109,10 @@ function fig(o){
   return v+'</svg>';
 }
 function pintar(){
-  $("cards").innerHTML=OBJ.map(o=>'<div class="card'+(obj===o.id?" on":"")+'" onclick="setObj(\''+o.id+'\')">'+fig(o)+'<b>'+o.id+'</b><span>'+o.d+'</span></div>').join("");
+  $("cards").innerHTML=OBJ.map((o,i)=>{
+    const c=cand(sexo==="Mujer"?o.m:o.h);
+    return '<div class="card'+(obj===o.id?" on":"")+'" onclick="setObj(\''+o.id+'\')"><div class="im"><img src="'+c[0]+'" data-t="0" data-i="'+i+'" onerror="falla(this)"></div><b>'+o.id+'</b><span>'+o.d+'</span></div>';
+  }).join("");
 }
 function setSexo(s){sexo=s;$("sH").className=s==="Hombre"?"on":"";$("sM").className=s==="Mujer"?"on":"";pintar();}
 function setObj(o){obj=o;pintar();}
@@ -128,3 +150,4 @@ function editar(){$("v2").style.display="none";$("v1").style.display="block";}
   }else pintar();
 })();
 </script></body></html>
+
