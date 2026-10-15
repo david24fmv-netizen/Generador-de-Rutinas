@@ -38,6 +38,16 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 .pfi b{display:block;font-size:17px}
 .pfi span{font-size:13px;color:#94a3b8}
 .ic{background:transparent;border:0;font-size:20px;padding:6px}
+.ex{background:#1e293b;border-radius:12px;padding:10px;margin:12px 0}
+.anim{position:relative;height:220px;background:#fff;border-radius:10px;overflow:hidden;margin-bottom:10px}
+.anim img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain}
+.anim img+img{animation:fl 1.6s step-end infinite}
+@keyframes fl{0%{opacity:0}50%{opacity:1}}
+.ex b{font-size:16px}
+.mu{display:block;font-size:12px;color:#38bdf8;margin:2px 0 6px}
+.ser{font-size:15px;font-weight:600}
+.tip{font-size:13px;color:#cbd5e1;margin-top:6px;line-height:1.5}
+.en{font-size:11px;color:#64748b;margin-top:6px}
 </style></head><body>
 
 <div id="v0" style="display:none">
@@ -97,16 +107,19 @@ input[type=text],input[type=number]{width:100%;padding:12px;font-size:16px;borde
 <h2>¿Qué parte del cuerpo quieres trabajar?</h2>
 <div class="wrap" id="mus"></div>
 <div class="err" id="errT"></div>
-<button class="main" onclick="generar()">Continuar</button>
+<button class="main" onclick="generar()">Generar rutina</button>
 <button class="sec" onclick="ir('v2')">← Volver</button>
 </div>
 
 <div id="v4" style="display:none">
-<h1>✅ Todo listo</h1>
-<div class="ok" id="resSes"></div>
-<div class="sub" style="margin-top:14px">El siguiente paso es generar la rutina con ejercicios, series y descansos.</div>
+<h1 id="rTitulo"></h1>
+<div class="ok" id="rMeta"></div>
+<div id="rLista"></div>
+<div class="ok" id="rNotas"></div>
+<button class="main" onclick="otraVar()">🔄 Otra variante</button>
 <button class="sec" onclick="abrirT()">Cambiar selección</button>
 <button class="sec" onclick="ir('v2')">Inicio</button>
+<div class="aviso">Rutina general según tu objetivo. No reemplaza a un entrenador o a un médico. Si sientes dolor (no cansancio), detén el ejercicio.</div>
 </div>
 
 <script>
@@ -275,6 +288,7 @@ function restaurar(){
 // ---------- Entrenamiento del día ----------
 const DIAS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const EQ=["Peso corporal","Bandas elásticas","Pesas de tobillo","Barra multifuncional de pared","Mancuernas"];
+const EQT={"Peso corporal":"c","Bandas elásticas":"b","Pesas de tobillo":"t","Barra multifuncional de pared":"p","Mancuernas":"m"};
 const MUS=["Cuerpo entero","Pecho","Espalda","Hombros","Bíceps","Tríceps","Abdomen","Glúteos","Cuádriceps","Isquiotibiales","Pantorrillas"];
 let dia=-1,lugar="",eq=[0],mus=[];
 
@@ -299,6 +313,152 @@ function togMus(i){
   else{const k=mus.indexOf(0);if(k>=0)mus.splice(k,1);tog(mus,i);}
   pintarT();
 }
+
+// ---------- Biblioteca de ejercicios ----------
+// [nombre, músculo, equipo requerido, rol (c=compuesto, a=aislamiento), prioridad, nombres en la base de datos, consejo, banderas (T=por tiempo, K=admite pesas de tobillo)]
+const LIB=[
+["Press de banca con barra","Pecho","g","c",1,["Barbell Bench Press - Medium Grip"],"Baja controlado hasta el pecho y empuja sin despegar la espalda del banco"],
+["Press inclinado con barra","Pecho","g","c",2,["Barbell Incline Bench Press - Medium Grip"],"Banco a 30-45 grados. Baja hasta la parte alta del pecho"],
+["Press inclinado con mancuernas","Pecho",["m","g"],"c",3,["Incline Dumbbell Press"],"Codos a unos 45 grados del torso, sube sin chocar las mancuernas"],
+["Press de banca con mancuernas","Pecho",["m","g"],"c",4,["Dumbbell Bench Press"],"Baja hasta sentir estiramiento en el pecho y empuja arriba"],
+["Flexiones","Pecho","c","c",5,["Pushups","Push-Ups"],"Cuerpo recto como una tabla; baja el pecho casi al suelo"],
+["Flexiones con manos elevadas","Pecho","c","c",6,["Incline Push-Up"],"Apoya las manos en una silla firme o un escalón; es más fácil que la flexión normal"],
+["Flexiones con agarre ancho","Pecho","c","c",7,["Push-Up Wide"],"Manos más abiertas que los hombros para cargar más el pecho"],
+["Press de pecho con bandas","Pecho","b","c",8,["Bench Press - With Bands"],"Ancla la banda detrás de ti y empuja hacia adelante sin encoger los hombros"],
+["Press de suelo con mancuernas","Pecho","m","c",9,["Dumbbell Floor Press"],"Acostado en el suelo; los codos tocan el piso en cada repetición"],
+["Aperturas con mancuernas","Pecho",["m","g"],"a",10,["Dumbbell Flyes"],"Codos ligeramente flexionados; abre en arco y junta apretando el pecho"],
+["Cruce de poleas","Pecho","g","a",11,["Cable Crossover"],"Junta las manos al frente apretando el pecho un segundo"],
+["Máquina de aperturas (pec deck)","Pecho","g","a",12,["Butterfly"],"Espalda pegada al respaldo; junta sin balancear"],
+
+["Dominadas","Espalda","p","c",1,["Pullups","Pull-Ups"],"Sube hasta pasar la barbilla de la barra y baja controlado"],
+["Remo con barra","Espalda","g","c",2,["Bent Over Barbell Row"],"Torso inclinado y espalda recta; lleva la barra hacia el abdomen"],
+["Dominadas con agarre supino","Espalda","p","c",3,["Chin-Up"],"Palmas hacia ti; lleva el pecho hacia la barra"],
+["Jalón al pecho","Espalda","g","c",4,["Wide-Grip Lat Pulldown"],"Tira hacia el pecho llevando los codos abajo y atrás"],
+["Remo en polea baja","Espalda","g","c",5,["Seated Cable Rows"],"Junta los omóplatos al final y no balancees el torso"],
+["Remo con mancuerna a una mano","Espalda","m","c",6,["One-Arm Dumbbell Row"],"Apoya una mano en una silla o banco; lleva el codo hacia la cadera"],
+["Remo inclinado con dos mancuernas","Espalda","m","c",7,["Bent Over Two-Dumbbell Row"],"Espalda recta; tira los codos hacia atrás"],
+["Dominadas asistidas con banda","Espalda",["p","b"],"c",8,["Band Assisted Pull-Up"],"La banda bajo la rodilla te ayuda; con el tiempo usa una más suave"],
+["Remo con banda elástica","Espalda","b","c",9,["Seated Band Row","Band Row"],"Banda anclada a la altura del pecho; junta los omóplatos al tirar"],
+["Remo colgado en barra","Espalda","p","c",10,["Bodyweight Mid Row"],"Cuélgate de la barra y lleva el cuerpo hacia ella"],
+["Peso muerto con barra","Espalda","g","c",11,["Barbell Deadlift"],"Espalda neutra; empuja el suelo con las piernas y extiende la cadera"],
+["Superman","Espalda","c","a",12,["Superman"],"Boca abajo, levanta brazos y piernas y mantén un segundo arriba"],
+
+["Press militar con barra","Hombros","g","c",1,["Barbell Shoulder Press"],"Abdomen apretado; empuja la barra sobre la cabeza sin arquear la espalda"],
+["Press de hombros con mancuernas","Hombros","m","c",2,["Dumbbell Shoulder Press"],"Sube las mancuernas sobre la cabeza sin arquear la espalda"],
+["Press Arnold","Hombros","m","c",3,["Arnold Dumbbell Press"],"Gira las palmas mientras subes las mancuernas"],
+["Press de hombros con banda","Hombros","b","c",4,["Shoulder Press - With Bands"],"Pisa la banda y empuja sobre la cabeza"],
+["Flexiones en pica","Hombros","c","c",5,["Pike Push-Up"],"Cadera alta en forma de V invertida; baja la cabeza hacia el suelo"],
+["Elevaciones laterales","Hombros","m","a",6,["Side Lateral Raise"],"Sube hasta la altura de los hombros con el codo ligeramente flexionado"],
+["Elevaciones laterales con banda","Hombros","b","a",7,["Lateral Raise - With Bands"],"Pisa la banda y sube los brazos a los lados"],
+["Pájaros (hombro posterior)","Hombros","m","a",8,["Reverse Flyes"],"Torso inclinado; abre los brazos hacia los lados apretando la espalda alta"],
+["Apertura con banda (pull apart)","Hombros","b","a",9,["Band Pull Apart"],"Brazos al frente; separa la banda hasta el pecho"],
+["Face pull","Hombros","g","a",10,["Face Pull"],"Tira de la cuerda hacia la cara abriendo los codos"],
+["Elevaciones frontales","Hombros","m","a",11,["Front Dumbbell Raise"],"Sube al frente hasta la altura de los ojos sin balancear"],
+["Encogimientos con barra","Hombros","g","a",12,["Barbell Shrug"],"Sube los hombros hacia las orejas sin rotarlos"],
+
+["Dominadas con agarre supino (bíceps)","Bíceps","p","c",1,["Chin-Up"],"Palmas hacia ti; sube hasta la barbilla"],
+["Curl con barra","Bíceps","g","a",1,["Barbell Curl"],"Codos pegados al torso; sube sin balancear"],
+["Curl con mancuernas","Bíceps","m","a",2,["Dumbbell Bicep Curl"],"Gira la muñeca hacia arriba al subir, sin mover el codo"],
+["Curl martillo","Bíceps","m","a",3,["Alternate Hammer Curl"],"Palmas enfrentadas; alterna los brazos"],
+["Curl concentrado","Bíceps","m","a",4,["Concentration Curls"],"Codo apoyado en el muslo; sube lento y aprieta arriba"],
+["Curl inclinado con mancuernas","Bíceps",["m","g"],"a",5,["Alternate Incline Dumbbell Curl"],"Banco inclinado; estira bien el bíceps abajo"],
+["Curl con banda","Bíceps","b","a",6,["Standing Biceps Curl With Bands","Band Curl"],"Pisa la banda; codos fijos al costado"],
+
+["Press cerrado con barra","Tríceps","g","c",1,["Close-Grip Barbell Bench Press"],"Agarre a la anchura de los hombros; codos cerca del cuerpo"],
+["Flexiones diamante","Tríceps","c","c",2,["Push-Ups - Close Triceps Position"],"Manos juntas bajo el pecho; codos pegados al cuerpo"],
+["Fondos en banco","Tríceps","c","c",3,["Bench Dips"],"Baja flexionando los codos hacia atrás hasta unos 90 grados"],
+["Jalón de tríceps en polea","Tríceps","g","a",4,["Triceps Pushdown - Rope Attachment","Triceps Pushdown"],"Codos fijos; extiende y abre la cuerda abajo"],
+["Extensión de tríceps con mancuerna","Tríceps","m","a",5,["Standing Dumbbell Triceps Extension"],"Mancuerna sobre la cabeza; baja detrás y extiende"],
+["Press francés con banda","Tríceps","b","a",6,["Band Skull Crusher"],"Codos apuntando al techo; extiende solo el antebrazo"],
+["Patada de tríceps","Tríceps","m","a",7,["Tricep Dumbbell Kickback"],"Torso inclinado y codo pegado; extiende hacia atrás"],
+
+["Plancha","Abdomen","c","a",1,["Plank"],"Cuerpo recto, abdomen y glúteos apretados; no hundas la cadera","T"],
+["Elevación de piernas colgado","Abdomen","p","a",2,["Hanging Leg Raise"],"Sube las piernas con control sin balancearte"],
+["Crunch en polea","Abdomen","g","a",3,["Cable Crunch"],"Encorva el torso llevando los codos hacia las rodillas"],
+["Crunch abdominal","Abdomen","c","a",4,["Crunches"],"Sube solo los hombros; la zona lumbar no se despega"],
+["Elevación de rodillas acostado","Abdomen","c","a",5,["Bent-Knee Hip Raise"],"Lleva las rodillas al pecho enrollando la pelvis"],
+["Bicicleta abdominal","Abdomen","c","a",6,["Air Bike"],"Codo hacia la rodilla contraria, ritmo controlado","T"],
+["Giro ruso","Abdomen","c","a",7,["Russian Twist"],"Torso inclinado atrás; gira de lado a lado"],
+["Escaladores (mountain climbers)","Abdomen","c","a",8,["Mountain Climbers"],"Posición de plancha alta; lleva las rodillas al pecho rápido","T"],
+["Patadas alternas (flutter kicks)","Abdomen","c","a",9,["Flutter Kicks"],"Piernas casi rectas, alterna sin arquear la espalda","TK"],
+["Toques de talón","Abdomen","c","a",10,["Alternate Heel Touchers"],"Inclina el torso a cada lado tocando el talón"],
+
+["Hip thrust con barra","Glúteos","g","c",1,["Barbell Hip Thrust"],"Espalda alta en el banco; sube la cadera y aprieta los glúteos arriba"],
+["Hip thrust con mancuerna","Glúteos","m","c",2,["Barbell Hip Thrust"],"Espalda alta en un sofá o banco, mancuerna sobre la cadera"],
+["Puente de glúteos","Glúteos","c","c",3,["Butt Lift (Bridge)"],"Empuja con los talones y aprieta los glúteos arriba","K"],
+["Puente de glúteos con banda","Glúteos","b","c",4,["Butt Lift (Bridge)"],"Banda sobre las rodillas; no dejes que se junten"],
+["Zancadas caminando","Glúteos","c","c",5,["Bodyweight Walking Lunge"],"Paso largo para cargar más el glúteo; torso erguido"],
+["Patada de glúteo en cuatro apoyos","Glúteos","c","a",6,["Glute Kickback"],"Empuja el talón hacia el techo sin arquear la espalda","K"],
+
+["Sentadilla con barra","Cuádriceps","g","c",1,["Barbell Squat"],"Pecho arriba; baja hasta que los muslos queden paralelos al suelo o más"],
+["Prensa de piernas","Cuádriceps","g","c",2,["Leg Press"],"No bloquees las rodillas al subir"],
+["Sentadilla goblet","Cuádriceps","m","c",3,["Goblet Squat"],"Mancuerna pegada al pecho; baja con la espalda recta"],
+["Zancadas con mancuernas","Cuádriceps","m","c",4,["Dumbbell Lunges"],"Rodilla delantera sobre el pie; baja en línea recta"],
+["Sentadilla con banda","Cuádriceps","b","c",5,["Squats - With Bands"],"Pisa la banda y sostén los extremos a la altura de los hombros"],
+["Sentadilla con peso corporal","Cuádriceps","c","c",6,["Bodyweight Squat"],"Cadera atrás y rodillas en línea con los pies"],
+["Zancadas caminando","Cuádriceps","c","c",7,["Bodyweight Walking Lunge"],"Paso largo, rodilla trasera casi al suelo"],
+["Sentadilla con salto","Cuádriceps","c","c",8,["Freehand Jump Squat"],"Baja y salta con fuerza; aterriza suave con las rodillas flexionadas"],
+["Extensión de piernas en máquina","Cuádriceps","g","a",9,["Leg Extensions"],"Sube hasta extender y baja lento"],
+["Sentadilla isométrica en pared","Cuádriceps","c","a",10,["Wall Sit"],"Espalda en la pared y muslos paralelos al suelo","T"],
+
+["Peso muerto rumano con barra","Isquiotibiales","g","c",1,["Romanian Deadlift"],"Cadera atrás, barra pegada a las piernas, espalda recta"],
+["Peso muerto rumano con mancuernas","Isquiotibiales","m","c",2,["Stiff-Legged Dumbbell Deadlift","Romanian Deadlift"],"Rodillas ligeramente flexionadas; baja empujando la cadera atrás"],
+["Buenos días con banda","Isquiotibiales","b","c",3,["Band Good Morning"],"Pisa la banda; inclina el torso con la espalda recta"],
+["Puente de glúteos a una pierna","Isquiotibiales","c","c",4,["Single Leg Glute Bridge"],"Una pierna extendida; empuja con el talón","K"],
+["Buenos días con barra","Isquiotibiales","g","c",5,["Good Morning"],"Barra en la espalda alta; bisagra de cadera con espalda neutra"],
+["Curl femoral tumbado","Isquiotibiales","g","a",6,["Lying Leg Curls"],"Sube sin despegar la cadera del banco"],
+["Curl femoral sentado","Isquiotibiales","g","a",7,["Seated Leg Curl"],"Controla la bajada y no uses impulso"],
+
+["Elevación de talones de pie","Pantorrillas","c","a",1,["Standing Calf Raises"],"Sube hasta quedar de puntillas y baja estirando bien; hazlo en un escalón"],
+["Elevación de talones con mancuerna","Pantorrillas","m","a",2,["Standing Dumbbell Calf Raise"],"Sujeta la mancuerna y haz una pausa arriba"],
+["Elevación de talones sentado","Pantorrillas","g","a",3,["Seated Calf Raise","Barbell Seated Calf Raise"],"Pausa de un segundo arriba"],
+["Prensa de pantorrillas","Pantorrillas","g","a",4,["Calf Press On The Leg Press Machine","Calf Press"],"Recorrido completo y sin rebotes"]
+].map(a=>({n:a[0],mu:a[1],q:[].concat(a[2]),r:a[3],pr:a[4],k:a[5],tip:a[6],f:a[7]||""}));
+
+const META={
+ "Tonificado":{c:{s:3,r:"12-15",d:60},a:{s:3,r:"12-15",d:45},fin:"Finalizador: 10 minutos de caminata rápida o bicicleta suave."},
+ "Musculoso":{c:{s:4,r:"6-10",d:120},a:{s:3,r:"10-12",d:75},fin:"Finalizador: estira 5 minutos los músculos trabajados. Para crecer también importan la comida (proteína y calorías suficientes) y el descanso."},
+ "Atlético":{c:{s:4,r:"6-8",d:90},a:{s:3,r:"10-12",d:60},fin:"Finalizador: 5 rondas de 30 segundos de saltos o sprints suaves y 30 segundos de descanso."},
+ "Marcado":{c:{s:4,r:"8-12",d:75},a:{s:3,r:"12-15",d:45},fin:"Finalizador: 10 a 15 minutos de cardio por intervalos (30 segundos fuerte, 60 suave). Verse marcado depende sobre todo de bajar la grasa corporal con la alimentación."},
+ "Perder peso":{c:{s:3,r:"12-15",d:40},a:{s:3,r:"15-20",d:30},fin:"Finalizador: 20 a 30 minutos de cardio moderado (caminata inclinada, bicicleta o trote suave). Bajar de peso depende sobre todo de comer en déficit."},
+ "Fuerza bruta":{c:{s:5,r:"3-5",d:180},a:{s:3,r:"8-10",d:90},fin:"Finalizador: estira 5 minutos. Las series pesadas piden buena técnica: si eres principiante, empieza con 8 a 10 repeticiones y sube el peso poco a poco."}
+};
+const SPLIT={1:[1,0],2:[1,1],3:[2,1],5:[3,2]};
+const ORDEN=["Cuádriceps","Glúteos","Isquiotibiales","Espalda","Pecho","Hombros","Bíceps","Tríceps","Pantorrillas","Abdomen"];
+const FULL=["Cuádriceps","Espalda","Pecho","Isquiotibiales","Hombros","Abdomen"];
+const IMG="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+const DBURL="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json";
+let ses=null,VAR=0,DB=[];
+
+async function cargarDB(){
+  if(DB.length)return;
+  try{
+    const c=JSON.parse(localStorage.getItem("exdb"));
+    if(c&&c.length>500){DB=c;return;}
+  }catch(x){}
+  try{
+    const r=await fetch(DBURL);
+    const d=await r.json();
+    DB=d.map(e=>({id:e.id,n:e.name}));
+    try{localStorage.setItem("exdb",JSON.stringify(DB));}catch(x){}
+  }catch(x){DB=[];}
+}
+function buscar(keys){
+  for(const k of keys){
+    const kk=k.toLowerCase();
+    const e=DB.find(x=>x.n.toLowerCase()===kk);
+    if(e)return e;
+  }
+  for(const k of keys){
+    const kk=k.toLowerCase();
+    let best=null;
+    DB.forEach(x=>{if(x.n.toLowerCase().indexOf(kk)>=0&&(!best||x.n.length<best.n.length))best=x;});
+    if(best)return best;
+  }
+  return null;
+}
+function rot(a,n){if(!a.length)return a;n=n%a.length;return a.slice(n).concat(a.slice(0,n));}
+
 function generar(){
   let m="";
   if(dia<0)m="Elige el día.";
@@ -307,10 +467,89 @@ function generar(){
   else if(!mus.length)m="Elige qué parte del cuerpo vas a trabajar.";
   $("errT").textContent=m;
   if(m)return;
-  const s={dia:DIAS[dia],lugar:lugar,eq:lugar==="Casa"?eq.map(i=>EQ[i]):[],mus:mus.map(i=>MUS[i])};
-  try{localStorage.setItem("sesion_"+act,JSON.stringify(s));}catch(x){}
-  $("resSes").innerHTML="<b>Día:</b> "+s.dia+"<br><b>Lugar:</b> "+s.lugar+(s.eq.length?"<br><b>Equipo:</b> "+s.eq.join(", "):"")+"<br><b>Músculos:</b> "+s.mus.join(", ");
+  ses={dia:DIAS[dia],lugar:lugar,eq:lugar==="Casa"?eq.map(i=>EQ[i]):[],mus:mus.map(i=>MUS[i])};
+  VAR=0;
+  mostrarRutina();
+}
+function otraVar(){VAR++;mostrarRutina();}
+
+async function mostrarRutina(){
   ir("v4");
+  $("rTitulo").textContent="🔥 Rutina de "+ses.dia;
+  $("rMeta").textContent="Armando tu rutina...";
+  $("rLista").innerHTML="";$("rNotas").innerHTML="";
+  await cargarDB();
+  construir();
+}
+
+function construir(){
+  const f=perfil();
+  const objetivo=(f&&META[f.obj])?f.obj:"Tonificado";
+  const M=META[objetivo];
+  const tags=ses.lugar==="Gimnasio"?["c","b","p","m","g"]:ses.eq.map(n=>EQT[n]);
+  const musc=ses.mus.indexOf("Cuerpo entero")>=0?FULL:ses.mus;
+  const n=musc.length;
+  const per=ses.mus.indexOf("Cuerpo entero")>=0?1:(n===1?5:n===2?3:n===3?2:n===4?2:1);
+  const sp=SPLIT[per];
+  let sel=[];const pocas=[];
+  musc.forEach(mu=>{
+    const disp=LIB.filter(e=>e.mu===mu&&e.q.every(t=>tags.indexOf(t)>=0));
+    const comp=rot(disp.filter(e=>e.r==="c").sort((a,b)=>a.pr-b.pr),VAR);
+    const iso=rot(disp.filter(e=>e.r==="a").sort((a,b)=>a.pr-b.pr),VAR);
+    const c=comp.slice(0,sp[0]),i=iso.slice(0,sp[1]);
+    const falta=per-c.length-i.length;
+    if(falta>0){
+      comp.slice(c.length).concat(iso.slice(i.length)).slice(0,falta).forEach(e=>{(e.r==="c"?c:i).push(e);});
+    }
+    if(c.length+i.length<per)pocas.push(mu);
+    c.concat(i).forEach(e=>sel.push(e));
+  });
+  const vistos={};
+  sel=sel.filter(e=>{const k=e.k[0];if(vistos[k])return false;vistos[k]=1;return true;});
+  sel.sort((a,b)=>(a.r===b.r?0:(a.r==="c"?-1:1))||(ORDEN.indexOf(a.mu)-ORDEN.indexOf(b.mu)));
+
+  if(!sel.length){
+    $("rMeta").textContent="Con ese equipo no hay ejercicios para esos músculos. Cambia la selección y marca más equipo.";
+    return;
+  }
+  let seg=8*60;
+  const lista=sel.map(e=>{
+    const p=M[e.r];
+    seg+=p.s*(45+p.d);
+    const tiempo=e.f.indexOf("T")>=0;
+    let reps=p.r;
+    if(tiempo)reps="30-45 s";
+    else if(e.mu==="Pantorrillas")reps="12-20";
+    else if(e.mu==="Abdomen")reps="15-20";
+    let tip=e.tip;
+    if(tags.indexOf("t")>=0&&e.f.indexOf("K")>=0)tip+=". Añade las pesas de tobillo para más dificultad";
+    const db=buscar(e.k);
+    return {n:e.n,mu:e.mu,r:e.r,s:p.s,reps:reps,d:p.d,tip:tip,id:db?db.id:null,en:db?db.n:null};
+  });
+  const min=Math.round(seg/60/5)*5;
+
+  $("rMeta").innerHTML="<b>Objetivo:</b> "+esc(objetivo)+"<br><b>Lugar:</b> "+esc(ses.lugar)+(ses.eq.length?" ("+esc(ses.eq.join(", "))+")":"")+"<br><b>Músculos:</b> "+esc(ses.mus.join(", "))+"<br><b>Duración aprox.:</b> "+min+" min · "+lista.length+" ejercicios";
+  $("rLista").innerHTML=lista.map((x,i)=>{
+    let h='<div class="ex">';
+    if(x.id){
+      h+='<div class="anim"><img loading="lazy" src="'+IMG+x.id+'/0.jpg" onerror="this.parentNode.style.display=\'none\'"><img loading="lazy" src="'+IMG+x.id+'/1.jpg" onerror="this.parentNode.style.display=\'none\'"></div>';
+    }
+    h+='<b>'+(i+1)+'. '+esc(x.n)+'</b><span class="mu">'+esc(x.mu)+' · '+(x.r==="c"?"Ejercicio principal":"Ejercicio complementario")+'</span>';
+    h+='<div class="ser">'+x.s+' series × '+esc(x.reps)+'</div>';
+    h+='<div class="tip">⏱ Descanso entre series: '+x.d+' segundos</div>';
+    h+='<div class="tip">💡 '+esc(x.tip)+'</div>';
+    h+=x.en?'<div class="en">Ilustración de referencia: '+esc(x.en)+'</div>':'<div class="en">Sin ilustración disponible para este ejercicio</div>';
+    return h+'</div>';
+  }).join("");
+
+  let nt="<b>Calentamiento:</b> 5 a 8 minutos de cardio suave y movilidad, y 1 o 2 series ligeras del primer ejercicio.<br><br>";
+  nt+="<b>Intensidad:</b> elige un peso o una variante con la que termines cada serie dejando 1 o 2 repeticiones en reserva.<br><br>";
+  nt+=esc(M.fin);
+  if(pocas.length)nt+="<br><br><b>Ojo:</b> con tu equipo hay pocas opciones para: "+esc(pocas.join(", "))+". Si puedes, marca más equipo para tener rutinas más completas.";
+  if(f&&f.e>=50)nt+="<br><br><b>Por tu edad:</b> calienta bien, sube la carga poco a poco y, si tienes dudas de salud, consulta a un médico antes de entrenar fuerte.";
+  $("rNotas").innerHTML=nt;
+
+  try{localStorage.setItem("rut_"+act+"_"+ses.dia,JSON.stringify({obj:objetivo,ses:ses,ejercicios:lista}));}catch(x){}
 }
 
 // ---------- Inicio ----------
@@ -319,6 +558,7 @@ if(!PF.length){nuevoP();}
 else if(perfil()){mostrar(perfil());}
 else{irP();}
 </script></body></html>
+
 
 
 
